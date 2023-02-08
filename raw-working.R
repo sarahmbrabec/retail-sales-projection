@@ -46,7 +46,44 @@ model = xgb.train(data = xgb_train, max.depth = 3,nrounds = 63, verbose = 0)
 
 pred = predict(model, xgb_test)
 
+
 mean((test_y - pred)^2) #mse
 caret::MAE(test_y, pred) #mae
 caret::RMSE(test_y, pred) #rmse
+
+#Considering the results I want to try a ridge regression model. 
+#XGBoost does tend to perform well, but considering the multi collinearity 
+#of ridge regression would be great
+
+library(glmnet)
+#setup data
+y <- df$sales_pkg
+x <- data.matrix(df[, c("date","sku","group","units_pkg","avg_price_pkg")])
+
+
+model <- glmnet(x, y, alpha = 0)
+summary(model)
+
+cv_model <- cv.glmnet(x, y, alpha = 0)
+best_lambda <- cv_model$lambda.min
+best_lambda
+plot(cv_model)
+
+best_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
+coef(best_model)
+
+
+plot(model, xvar = "lambda")
+
+y_predicted <- predict(model, s = best_lambda, newx = x)
+
+#find SST and SSE
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+#find R-Squared
+rsq <- 1 - sse/sst
+rsq
+
+#Results are absolute shit 
 
